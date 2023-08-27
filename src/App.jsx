@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import axios from 'axios';
 import Searchbar from './components/Searchbar/Searchbar';
 import ImageGallery from './components/ImageGallery/ImageGallery';
@@ -7,87 +7,97 @@ import Button from './components/Button/Button';
 import Modal from './components/Modal/Modal';
 import Loader from './components/Loader/Loader';
 
-function App() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [images, setImages] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [largeImageUrl, setLargeImageUrl] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+class App extends Component {
+  state = {
+    searchQuery: '',
+    images: [],
+    currentPage: 1,
+    largeImageUrl: '',
+    showModal: false,
+    isLoading: false,
+    hasMore: true,
+  };
 
-  useEffect(() => {
-    if (searchQuery) {
-      fetchImages();
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.searchQuery !== this.state.searchQuery) {
+      this.fetchImages();
     }
-  }, [searchQuery]);
+  }
 
-  const onChangeQuery = query => {
-    setSearchQuery(query);
-    setImages([]);
-    setCurrentPage(1);
-    setHasMore(true);
+  onChangeQuery = query => {
+    this.setState({
+      searchQuery: query,
+      images: [],
+      currentPage: 1,
+      hasMore: true,
+    });
   };
 
-  const fetchImages = () => {
-    setIsLoading(true);
+ fetchImages = () => {
+  const { searchQuery, currentPage } = this.state;
 
-    axios
-      .get(
-        `https://pixabay.com/api/?q=${searchQuery}&page=${currentPage}&key=38138033-59618da37527b2e085afc0aca&image_type=photo&orientation=horizontal&per_page=12`
-      )
-      .then(response => {
-        const newImages = response.data.hits;
-        const totalImages = response.data.totalHits;
+  this.setState({ isLoading: true });
 
-        if (totalImages <= currentPage * 12) {
-          setHasMore(false);
-        }
+  axios
+    .get(
+      `https://pixabay.com/api/?q=${searchQuery}&page=${currentPage}&key=38138033-59618da37527b2e085afc0aca&image_type=photo&orientation=horizontal&per_page=12`
+    )
+    .then(response => {
+      const newImages = response.data.hits;
+      const totalImages = response.data.totalHits;
 
-        setImages(prevImages => [...prevImages, ...newImages]);
-        setCurrentPage(prevPage => prevPage + 1);
-      })
-      .catch(error => console.log(error))
-      .finally(() => {
-        setIsLoading(false);
-      });
+      if (totalImages <= currentPage * 12) {
+        this.setState({ hasMore: false });
+      }
+
+      this.setState(prevState => ({
+        images: [...prevState.images, ...newImages],
+        currentPage: prevState.currentPage + 1,
+      }));
+    })
+    .catch(error => console.log(error))
+    .finally(() => {
+      this.setState({ isLoading: false });
+    });
+};
+
+  openModal = largeImageUrl => {
+    this.setState({ largeImageUrl, showModal: true });
   };
 
-  const openModal = largeImageUrl => {
-    setLargeImageUrl(largeImageUrl);
-    setShowModal(true);
+  closeModal = () => {
+    this.setState({ largeImageUrl: '', showModal: false });
   };
 
-  const closeModal = () => {
-    setLargeImageUrl('');
-    setShowModal(false);
-  };
+  render() {
+    const { images, showModal, largeImageUrl, isLoading, hasMore } = this.state;
 
-  return (
-    <div>
-      <Searchbar onSubmit={onChangeQuery} />
-      <ImageGallery>
-        {images.map(image => (
-          <ImageGalleryItem
-            key={image.id}
-            webformatURL={image.webformatURL}
-            largeImageURL={image.largeImageURL}
-            onClick={openModal}
+    return (
+      <div>
+        <Searchbar onSubmit={this.onChangeQuery} />
+        <ImageGallery>
+          {images.map(image => (
+            <ImageGalleryItem
+              key={image.id}
+              webformatURL={image.webformatURL}
+              largeImageURL={image.largeImageURL}
+              onClick={this.openModal}
+            />
+          ))}
+        </ImageGallery>
+        {isLoading && <Loader />}
+        {!isLoading && images.length > 0 && hasMore && (
+          <Button onClick={this.fetchImages}>Load more</Button>
+        )}
+        {showModal && (
+          <Modal
+            largeImageURL={largeImageUrl}
+            onClose={this.closeModal}
           />
-        ))}
-      </ImageGallery>
-      {isLoading && <Loader />}
-      {!isLoading && images.length > 0 && hasMore && (
-        <Button onClick={fetchImages}>Load more</Button>
-      )}
-      {showModal && (
-        <Modal
-          largeImageURL={largeImageUrl}
-          onClose={closeModal}
-        />
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  }
 }
 
 export default App;

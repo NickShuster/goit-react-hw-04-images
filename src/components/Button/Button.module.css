@@ -1,0 +1,24 @@
+.button:hover {
+    background-color: #303f9f;
+}
+
+.button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.button[disabled] {
+    background-color: #d3d3d3;
+    cursor: not-allowed;
+}
+
+.button.hidden {
+    display: none;
+}
